@@ -85,7 +85,7 @@ Use the triplets extracted in the previous step to populate the Neo4j database.
 python -m KG_builder.neo4j --database_dir test
 ```
 
-## Retrieve Information from Knowledge Graph
+## Retrieve Information from Knowledge Graph (TODO)
 
 We use a retrieval strategy based on entity recognition from user queries:
 
