@@ -5,8 +5,8 @@ from typing import Dict, List
 from tqdm import tqdm
 
 from neo4j import GraphDatabase
-from utils._path import DATA_SOURCE, DATABASE
-from utils.json_tools import load_json, save_json
+from utils._path import DATABASE
+from utils.json_tools import load_json
 
 
 def connect_to_neo4j() -> GraphDatabase.driver:
