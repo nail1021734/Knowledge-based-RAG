@@ -114,7 +114,7 @@ top_k_results = trtriever.retrieve(
 print(top_k_results)
 ```
 
-## Generate Text with RAG
+## Generate Text with Knowledge Graph
 
 Use `generate.py` to perform retrieval-augmented generation (RAG) with the retrieved text chunks.
 | Argument                    | Description                                                                                |
