@@ -68,8 +68,11 @@ def generate_text(
         top_k=top_k,
         max_new_tokens=max_new_tokens
     )
-    model.to('cpu')
-    torch.cuda.empty_cache()
+
+    # My RAM is limited to only 24 GB, so I can't move to cpu or my process will crash.
+    # If your RAM is large enough, you can uncomment the following lines to free up GPU memory.
+    # model.to('cpu')
+    # torch.cuda.empty_cache()
     return tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
 
 
