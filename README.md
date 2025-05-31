@@ -85,11 +85,53 @@ Use the triplets extracted in the previous step to populate the Neo4j database.
 python -m KG_builder.neo4j --database_dir test
 ```
 
-## Retrieve Information from Knowledge Graph (TODO)
+After this command, you can access the Neo4j database at `http://localhost:7474` (remember forword the port from container to localhost) with the default credentials (you can change them in `docker-compose.yml`):
+- **Username**: `neo4j`
+- **Password**: `password`
 
-We use a retrieval strategy based on entity recognition from user queries:
+## Retrieve Information from Knowledge Graph
 
+The implementation of retrieval methods is under `retrievers`.
+In `NHopRetriever`, we use a retrieval strategy based on named entity recognition from user queries:
 1. Identify entities in the query.
 2. Retrieve their **n-hop relations** from the graph.
-3. Collect the corresponding **original text chunks or their summaries**.
-4. Feed the retrieved information into an LLM for generating responses.
+3. Convert the relations and related text chunks into embeddings using an LLM.
+4. Use these embeddings to find the most relevant text chunks based on dot product of embeddings.
+5. Return the top-k relevant text chunks.
+
+Example usage of `NHopRetriever`:
+
+```python
+from retrievers.NHopRetriever import NHopRetriever
+
+retriever = NHopRetriever(embedding_model="intfloat/multilingual-e5-small", NER_model="microsoft/phi-4")
+top_k_results = trtriever.retrieve(
+    query="What is the LoRA?",
+    n_hop=2,
+    top_k=10,
+    use_text_chunk=True
+)
+print(top_k_results)
+```
+
+## Generate Text with RAG
+
+Use `generate.py` to perform retrieval-augmented generation (RAG) with the retrieved text chunks.
+| Argument                    | Description                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `model_name`                | LLM model for generation (e.g., `microsoft/phi-2`)                                         |
+| `prompt`                    | The prompt to generate text from the retrieved information                                 |
+| `temperature`               | Sampling temperature for generation (default: `0.7`)                                       |
+| `relevant_top_k`            | Number of top relevant chunks to retrieve (default: `5`)                                   |
+| `top_p`                     | Top-p sampling parameter for generation (default: `0.9`)                                   |
+| `top_k`                     | Top-k sampling parameter for generation (default: `None`, meaning no top-k filtering)      |
+| `max_new_tokens`            | Maximum number of new tokens to generate (default: `512`)                                  |
+| `retriever_ner_model`       | Path or name of the NER model used in the retriever (default: `microsoft/phi-4`)           |
+| `retriever_embedding_model` | Embedding model for retrieving relevant chunks (default: `intfloat/multilingual-e5-small`) |
+| `retriever_n_hop`           | Number of hops for the N-hop retriever (default: `1`)                                      |
+| `retriever_used_text_chunk` | Whether to use text chunks in the retriever (default: `True`)                              |
+
+
+```bash
+python -m generate --model_name "microsoft/phi-4" --prompt "What is LoRA?"
+```

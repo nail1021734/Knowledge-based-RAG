@@ -1,9 +1,13 @@
+import json
+from typing import Dict, List
+
 import torch
-from typing import List, Dict
-from KG_builder.neo4j import connect_to_neo4j
 from sentence_transformers import SentenceTransformer
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import bitsandbytes as bnb
+
+from KG_builder.neo4j import connect_to_neo4j
+from utils._path import DATA_SOURCE, DATABASE
+from utils.json_tools import load_json
 
 
 class NHopRetriever:
@@ -211,13 +215,20 @@ class NHopRetriever:
         return model.encode(text, convert_to_tensor=True)
 
 
-    def retrieve(self, query: str, n_hop: int = 1, top_k: int = 10) -> List[Dict]:
+    def retrieve(
+            self,
+            query: str,
+            n_hop: int = 1,
+            top_k: int = 10,
+            use_text_chunk: bool = True,
+        ) -> List[Dict]:
         """
         Retrieve top-k n-hop relations based on the query and named entities.
         Args:
             query (str): The input query to retrieve relations for.
             n_hop (int): The number of hops to retrieve relations for.
             top_k (int): The number of top relations to return.
+            use_text_chunk (bool): Whether to use text chunks in the relation embeddings.
         Returns:
             List[Dict]: A list of dictionaries containing the top-k relations and their scores.
         """
@@ -234,6 +245,8 @@ class NHopRetriever:
             return None
         # Get n-hop relations for the entities
         relations = self.get_n_hop_relations(entities=entities, n_hop=n_hop)
+        if not relations:
+            return None
 
         self.embedding_model.to('cuda')
         # Convert query to embedding
@@ -245,12 +258,31 @@ class NHopRetriever:
         ).to('cpu')
 
         # Convert relations to embeddings and calculate similarity
-        # TODO: Add text chunk in text before converting to embedding
+        if use_text_chunk:
+            text_chunk_database_cache = {}
         relation_embeddings = []
         for relation in relations:
-            text = f"{relation['subject']} {relation['relation']} {relation['object']}"
+            relation_properties = relation['relation'][0]._properties
+
+            # Get the text chunk to include in the relation embedding
+            text = f"{relation['subject']} {relation_properties['name']} {relation['object']}"
+            relation['relation_text'] = text
+            if use_text_chunk:
+                # Load text pieces from the database if not already cached
+                if text_chunk_database_cache.get(relation_properties['database']) is None:
+                    text_chunk_database_cache[relation_properties['database']] = load_json(
+                        f"{DATABASE}/{relation_properties['database']}/text_pieces.json"
+                    )
+                text_chunk = text_chunk_database_cache[relation_properties['database']][relation_properties['text_chunk_index']]
+                text = f"Relation: {text} \n\n Text chunk: {text_chunk}"
+                relation['text_chunk'] = text_chunk
+
+            # Prepend "passage: " for the multilingual E5 model
+            # to ensure it processes the text correctly
             if self.embedding_model == "intfloat/multilingual-e5-small":
                 text = "passage: " + text
+
+            # Convert text to embedding
             relation_embeddings.append(
                 self.convert_text_to_embedding(
                     model=self.embedding_model,
@@ -283,6 +315,7 @@ if __name__ == "__main__":
     a = test.retrieve(
         query="What is the LoRA?",
         n_hop=2,
-        top_k=10
+        top_k=10,
+        use_text_chunk=True
     )
     print(a)
