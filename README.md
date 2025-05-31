@@ -57,7 +57,7 @@ The extracted information is stored as triplets: `(subject, relation, object)`, 
 | ----------------- | -------------------------------------------------------------------------------------- |
 | `data_source_dir` | A folder under `data_sources` containing the source data (currently supports PDF only) |
 | `database_dir`    | Name of the output folder (will be created inside `databases`)                         |
-| `model_name`      | LLM model for extraction (default: `microsoft/phi-2`)                                  |
+| `model_name`      | LLM model for extraction (default: `microsoft/phi-4`)                                  |
 | `chunk_size`      | Size of each text chunk (default: 512)                                                 |
 | `chunk_overlap`   | Overlap size between text chunks (default: 256)                                        |
 | `max_tokens`      | Max number of tokens for LLM generation                                                |
@@ -135,3 +135,10 @@ Use `generate.py` to perform retrieval-augmented generation (RAG) with the retri
 ```bash
 python -m generate --model_name "microsoft/phi-4" --prompt "What is LoRA?"
 ```
+
+## TODO
+
+- Implement more retrieval methods in `retrievers`.
+- Add evaluation metrics for retrieval and generation.
+- Use browser-based interface for easier interaction with the knowledge-based RAG system.
+- Improve error handling and logging.
